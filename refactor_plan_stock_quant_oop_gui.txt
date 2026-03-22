@@ -1,0 +1,252 @@
+============================================================
+REFRACTOR PLAN — STOCK-QUANT-OOP → STOCK-QUANT-OOP-GUI
+============================================================
+
+OBJECTIF GLOBAL
+------------------------------------------------------------
+Transformer le moteur quant actuel en plateforme complète:
+- Core quant réutilisable
+- Web API stable
+- GUI web user-friendly
+
+Architecture cible:
+    Core Engine (stock-quant-oop)
+            ↓
+        Web API
+            ↓
+         GUI Web
+
+============================================================
+PHASE 1 — STABILISER LE CORE (IMPORTANT)
+============================================================
+
+But:
+Sortir la logique métier des scripts CLI.
+
+Créer services métier:
+
+- PriceService
+- SecService
+- FinraService
+- ResearchFeatureService
+- BacktestService
+- PortfolioService
+- HealthService
+- JobService
+
+Chaque service:
+- aucune dépendance CLI
+- retourne objets structurés
+- testable
+
+Exemples:
+    run_incremental_refresh()
+    build_research_features()
+    run_backtest(params)
+    get_health_snapshot()
+
+============================================================
+PHASE 2 — CONTRACTS (Pydantic)
+============================================================
+
+Créer:
+
+stock_quant/app/schemas/
+
+- requests.py
+- responses.py
+- jobs.py
+- errors.py
+
+Standardiser:
+- entrées API
+- sorties API
+- erreurs
+
+Format erreur:
+{
+    "code": "...",
+    "message": "...",
+    "details": {...}
+}
+
+============================================================
+PHASE 3 — DB LAYER ISOLATION
+============================================================
+
+Créer:
+
+stock_quant/infrastructure/db/
+stock_quant/infrastructure/repositories/
+
+- database_session.py
+- query_repository.py
+- job_repository.py
+- metrics_repository.py
+
+Règle:
+Aucun accès SQL direct dans les services.
+
+============================================================
+PHASE 4 — CLI → WRAPPER
+============================================================
+
+Les scripts CLI deviennent:
+
+- wrappers minces
+- appelent services internes
+
+Avant:
+    cli/run_x.py
+
+Après:
+    service.run_x()
+
+============================================================
+PHASE 5 — WEB API (FastAPI)
+============================================================
+
+Stack:
+- FastAPI
+- Uvicorn
+- Pydantic
+
+Endpoints:
+
+GET  /api/v1/health
+GET  /api/v1/system/info
+GET  /api/v1/pipelines/status
+
+POST /api/v1/jobs/manual-refresh
+POST /api/v1/jobs/build-features
+POST /api/v1/backtests/run
+
+GET  /api/v1/jobs
+GET  /api/v1/jobs/{job_id}
+GET  /api/v1/jobs/{job_id}/logs
+
+GET  /api/v1/features/catalog
+GET  /api/v1/tables/coverage
+
+============================================================
+PHASE 6 — JOB SYSTEM (CRITIQUE POUR GUI)
+============================================================
+
+Tables à créer:
+
+- app_job_run
+- app_job_event
+- app_artifact
+
+Status:
+- PENDING
+- RUNNING
+- SUCCESS
+- FAILED
+- CANCELLED
+
+Logs:
+- format JSONL
+- stockés dans logs/
+
+============================================================
+PHASE 7 — GUI WEB
+============================================================
+
+Stack:
+- React / Next.js
+- TypeScript
+- Tailwind
+- TanStack Query
+
+Pages:
+
+- Dashboard
+- Pipelines
+- Data Coverage
+- Features Catalog
+- Backtests
+- Jobs / Logs
+- Settings
+- Health
+
+============================================================
+PHASE 8 — CONFIG & UX
+============================================================
+
+Ajouter:
+
+- .env centralisé
+- validation config au démarrage
+- erreurs lisibles
+
+UX critique:
+- progression jobs
+- logs lisibles
+- métriques simples
+
+============================================================
+ARCHITECTURE CIBLE (CORE)
+============================================================
+
+stock_quant/
+
+├── app/
+│   ├── services/
+│   ├── use_cases/
+│   ├── schemas/
+│   └── orchestration/
+│
+├── domain/
+│   ├── entities/
+│   ├── value_objects/
+│   └── policies/
+│
+├── infrastructure/
+│   ├── db/
+│   ├── repositories/
+│   ├── providers/
+│   ├── logging/
+│   └── settings/
+│
+└── utils/
+
+============================================================
+NOUVEAU REPO: stock-quant-oop-gui
+============================================================
+
+Structure:
+
+apps/
+  api/
+  web/
+
+packages/
+  client-sdk/
+  ui/
+
+infra/
+  nginx/
+  systemd/
+
+docs/
+
+============================================================
+MVP PRIORITAIRE
+============================================================
+
+1. Services métier stabilisés
+2. Job system
+3. API FastAPI
+4. GUI minimal (jobs + health + pipelines)
+
+============================================================
+RESULTAT FINAL
+============================================================
+
+- pipeline pilotable sans CLI
+- observabilité complète
+- GUI utilisable par non-dev
+- base solide pour production
+
+============================================================
